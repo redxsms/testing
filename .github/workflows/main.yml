@@ -19,14 +19,22 @@ jobs:
           # ২. RDP চালু করা
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
           
-          # ৩. Bore ইনস্টল ও চালু করা (TCP টানেল)
-          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.exe" -OutFile "bore.exe"
-          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub"
-          Start-Sleep -Seconds 10
+          # ৩. Bore ইনস্টল ও চালু করা (curl ব্যবহার করে ডাউনলোড)
+          curl.exe -L -o bore.exe "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.exe"
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_error.log"
+          Start-Sleep -Seconds 15
           
           # ৪. লগ থেকে পোর্ট বের করা
-          $PORT = (Select-String -Path "bore.log" -Pattern "listening at bore.pub:([0-9]+)" -AllMatches).Matches.Groups[1].Value
-          $IP = "bore.pub:$PORT"
+          $logContent = Get-Content "bore.log" -Raw
+          if ([string]::IsNullOrEmpty($logContent)) { $logContent = Get-Content "bore_error.log" -Raw }
+          
+          $match = [regex]::Match($logContent, "bore.pub:([0-9]+)")
+          if ($match.Success) {
+              $PORT = $match.Groups[1].Value
+              $IP = "bore.pub:$PORT"
+          } else {
+              $IP = "Error: Check Bore Log"
+          }
           
           # ৫. বট যেন পড়ে নিতে পারে
           Write-Host "========================================"
