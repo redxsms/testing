@@ -1,4 +1,4 @@
-name: Windows Unlimited RDP Test
+name: Windows RDP via Bore (Free)
 on: [workflow_dispatch]
 
 jobs:
@@ -6,7 +6,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 9999999
     steps:
-      - name: Setup RDP & Keep Alive
+      - name: Setup RDP & Bore
         shell: pwsh
         run: |
           # ১. র‍্যান্ডম ইউজার ও পাসওয়ার্ড তৈরি
@@ -16,24 +16,27 @@ jobs:
           net localgroup Administrators $USERNAME /add
           net localgroup "Remote Desktop Users" $USERNAME /add
           
-          # ২. RDP এবং ফায়ারওয়াল চালু করা
+          # ২. RDP চালু করা
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           
-          # ৩. পাবলিক আইপি বের করা
-          $IP = (Invoke-WebRequest -uri "http://ifconfig.me/ip").Content.Trim()
+          # ৩. Bore ইনস্টল ও চালু করা (TCP টানেল)
+          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.exe" -OutFile "bore.exe"
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub"
+          Start-Sleep -Seconds 10
           
-          # ৪. বট যেন প্রথমবার লগ থেকে পড়ে নিতে পারে
+          # ৪. লগ থেকে পোর্ট বের করা
+          $PORT = (Select-String -Path "bore.log" -Pattern "listening at bore.pub:([0-9]+)" -AllMatches).Matches.Groups[1].Value
+          $IP = "bore.pub:$PORT"
+          
+          # ৫. বট যেন পড়ে নিতে পারে
           Write-Host "========================================"
           Write-Host "Address: $IP"
           Write-Host "Username: $USERNAME"
           Write-Host "Password: $PASS"
           Write-Host "========================================"
           
-          # ৫. Keep Alive (অ্যাকশন চালু রাখা, কোনো বাইপাস লুপ নেই)
+          # ৬. Keep Alive
           while ($true) {
             Write-Host "[$(Get-Date)] Windows RDP is Active..."
             Start-Sleep -Seconds 300
           }
-        env:
-          GH_TOKEN: ${{ github.token }}
