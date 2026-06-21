@@ -1,0 +1,19 @@
+name: VPS Server Stats
+on: [workflow_dispatch]
+
+jobs:
+  stats:
+    runs-on: self-hosted
+    timeout-minutes: 2
+    steps:
+      - name: Get System Stats
+        shell: bash
+        run: |
+          echo "=== VPS_USAGE_STATS ==="
+          # RAM Usage
+          free -m | awk 'NR==2{printf "RAM Total: %s MB | Used: %s MB | Free: %s MB\n", $2, $3, $4}'
+          # Storage Usage
+          df -h / | awk 'NR==2{printf "Storage Total: %s | Used: %s | Free: %s\n", $2, $3, $4}'
+          # CPU Usage
+          top -bn1 | grep "Cpu(s)" | awk '{print "CPU Usage: " $2 "%"}'
+          echo "======================"
