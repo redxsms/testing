@@ -4,30 +4,39 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: self-hosted
-    timeout-minutes: 5 
+    timeout-minutes: 9999999 # আনলিমিটেড রাখার জন্য
     steps:
       - name: Setup Unlimited RDP
+        shell: bash # এটি অবশ্যই থাকতে হবে
         run: |
           # ১. ইউজার তৈরি ও র‍্যান্ডম পাসওয়ার্ড সেট করা
           id -u rdp &>/dev/null || useradd -m rdp
           PASS=$(openssl rand -hex 8)
           echo "rdp:$PASS" | chpasswd
-          echo "Password: $PASS"
-
+          
           # ২. xrdp সার্ভিস রিস্টার্ট করা
           systemctl enable xrdp
           systemctl restart xrdp
 
-          # ৩. আগের থাকা ngrok থাকলে মেরে ফেলা (পোর্ট জ্যাম এড়ানোর জন্য)
+          # ৩. আগের থাকা ngrok থাকলে মেরে ফেলা
           pkill ngrok
           sleep 2
 
-          # ৪. ngrok কে ব্যাকগ্রাউন্ডে (nohup) চালু করা (এটাই আনলিমিটেড করার মূল সিক্রেট)
+          # ৪. ngrok কে ব্যাকগ্রাউন্ডে চালু করা
           nohup ngrok tcp 3389 --log=stdout > /tmp/ngrok.log &
 
           # ৫. আইপি বের করার জন্য ৫ সেকেন্ড অপেক্ষা করা
           sleep 5
-          IP=$(grep -oE 'tcp://[0-9.a-z-]+:[0-9]+' /tmp/ngrok.log | head -1 | sed 's/tcp:\/\//')
+          IP=$(grep -oE 'tcp://[0-9.a-z-]+:[0-9]+' /tmp/ngrok.log | head -1 | sed 's/tcp:\/\///')
           
-          # ৬. বট যেন ঠিক এই লাইনগুলো পড়ে নিতে পারে তাই এভাবে প্রিন্ট করা হচ্ছে
+          # ৬. বট যেন ঠিক এই লাইনগুলো পড়ে নিতে পারে
+          echo "========================================"
           echo "Address: $IP"
+          echo "Username: rdp"
+          echo "Password: $PASS"
+          echo "========================================"
+          
+          # অনন্তকালের জন্য চালু রাখা
+          while true; do
+            sleep 300
+          done
