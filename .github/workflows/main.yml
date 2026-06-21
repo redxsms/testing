@@ -19,12 +19,15 @@ jobs:
           # ২. RDP চালু করা
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
           
-          # ৩. Bore ইনস্টল ও চালু করা (curl ব্যবহার করে ডাউনলোড)
-          curl.exe -L -o bore.exe "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.exe"
+          # ৩. Bore ডাউনলোড করা (WebClient ব্যবহার করে, যাতে HTML ডাউনলোড না হয়)
+          $url = "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.exe"
+          (New-Object System.Net.WebClient).DownloadFile($url, "$pwd\bore.exe")
+          
+          # ৪. Bore চালু করা
           Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_error.log"
           Start-Sleep -Seconds 15
           
-          # ৪. লগ থেকে পোর্ট বের করা
+          # ৫. লগ থেকে পোর্ট বের করা
           $logContent = Get-Content "bore.log" -Raw
           if ([string]::IsNullOrEmpty($logContent)) { $logContent = Get-Content "bore_error.log" -Raw }
           
@@ -36,14 +39,14 @@ jobs:
               $IP = "Error: Check Bore Log"
           }
           
-          # ৫. বট যেন পড়ে নিতে পারে
+          # ৬. বট যেন পড়ে নিতে পারে
           Write-Host "========================================"
           Write-Host "Address: $IP"
           Write-Host "Username: $USERNAME"
           Write-Host "Password: $PASS"
           Write-Host "========================================"
           
-          # ৬. Keep Alive
+          # ৭. Keep Alive
           while ($true) {
             Write-Host "[$(Get-Date)] Windows RDP is Active..."
             Start-Sleep -Seconds 300
