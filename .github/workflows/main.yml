@@ -4,22 +4,22 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: self-hosted
-    timeout-minutes: 9999999 # আনলিমিটেড রাখার জন্য
+    timeout-minutes: 9999999
     steps:
       - name: Setup Unlimited RDP
-        shell: bash # এটি অবশ্যই থাকতে হবে
+        shell: bash
         run: |
           # ১. ইউজার তৈরি ও র‍্যান্ডম পাসওয়ার্ড সেট করা
           id -u rdp &>/dev/null || useradd -m rdp
           PASS=$(openssl rand -hex 8)
           echo "rdp:$PASS" | chpasswd
           
-          # ২. xrdp সার্ভিস রিস্টার্ট করা
-          systemctl enable xrdp
-          systemctl restart xrdp
+          # ২. xrdp সার্ভিস রিস্টার্ট করা (ব্যর্থ হলেও স্কিপ করবে)
+          systemctl enable xrdp || true
+          systemctl restart xrdp || true
 
-          # ৩. আগের থাকা ngrok থাকলে মেরে ফেলা
-          pkill ngrok
+          # ৩. আগের থাকা ngrok থাকলে মেরে ফেলা (ব্যর্থ হলেও স্কিপ করবে)
+          pkill ngrok || true
           sleep 2
 
           # ৪. ngrok কে ব্যাকগ্রাউন্ডে চালু করা
