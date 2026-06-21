@@ -18,18 +18,10 @@ jobs:
           systemctl enable xrdp || true
           systemctl restart xrdp || true
 
-          # ৩. আগের থাকা ngrok থাকলে মেরে ফেলা (ব্যর্থ হলেও স্কিপ করবে)
-          pkill ngrok || true
-          sleep 2
-
-          # ৪. ngrok কে ব্যাকগ্রাউন্ডে চালু করা
-          nohup ngrok tcp 3389 --log=stdout > /tmp/ngrok.log &
-
-          # ৫. আইপি বের করার জন্য ৫ সেকেন্ড অপেক্ষা করা
-          sleep 5
-          IP=$(grep -oE 'tcp://[0-9.a-z-]+:[0-9]+' /tmp/ngrok.log | head -1 | sed 's/tcp:\/\///')
+          # ৩. সরাসরি VPS এর পাবলিক আইপি বের করা (ngrok এর কোনো দরকার নেই)
+          IP=$(curl -s ifconfig.me || curl -s api.ipify.org)
           
-          # ৬. বট যেন ঠিক এই লাইনগুলো পড়ে নিতে পারে
+          # ৪. বট যেন ঠিক এই লাইনগুলো পড়ে নিতে পারে
           echo "========================================"
           echo "Address: $IP"
           echo "Username: rdp"
