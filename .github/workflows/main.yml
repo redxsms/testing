@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: self-hosted
-    timeout-minutes: 9999999
+    timeout-minutes: 10
     steps:
       - name: Setup Unlimited RDP
         shell: bash
@@ -14,11 +14,11 @@ jobs:
           PASS=$(openssl rand -hex 8)
           echo "rdp:$PASS" | chpasswd
           
-          # ২. xrdp সার্ভিস রিস্টার্ট করা (ব্যর্থ হলেও স্কিপ করবে)
+          # ২. xrdp সার্ভিস চালু করা (এটি ব্যাকগ্রাউন্ডে চলতেই থাকবে)
           systemctl enable xrdp || true
           systemctl restart xrdp || true
 
-          # ৩. সরাসরি VPS এর পাবলিক আইপি বের করা (ngrok এর কোনো দরকার নেই)
+          # ৩. সরাসরি VPS এর পাবলিক আইপি বের করা
           IP=$(curl -s ifconfig.me || curl -s api.ipify.org)
           
           # ৪. বট যেন ঠিক এই লাইনগুলো পড়ে নিতে পারে
@@ -28,7 +28,4 @@ jobs:
           echo "Password: $PASS"
           echo "========================================"
           
-          # অনন্তকালের জন্য চালু রাখা
-          while true; do
-            sleep 300
-          done
+          # অ্যাকশন এখানেই শেষ হয়ে যাবে, কিন্তু RDP চালু থাকবে
