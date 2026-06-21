@@ -1,12 +1,13 @@
-name: VPS Windows Style RDP
+name: VPS Unlimited RDP
 on: [workflow_dispatch]
 
 jobs:
   build:
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 9999999 # এটি গিটহাবকে জানাবে এটি আনলিমিটেড টাইমের জন্য
     steps:
-      - name: Setup RDP
+      # ১ম স্টেপ: এখানে শুধু ইউজার তৈরি হবে এবং বট লগ পড়ে নেবে
+      - name: Setup RDP & Storage
         shell: bash
         run: |
           USERNAME="rdp$(shuf -i 100-999 -n 1)"
@@ -29,7 +30,7 @@ jobs:
           chown $USERNAME:$USERNAME /home/$USERNAME/.xsession
           
           mkdir -p /home/$USERNAME/Desktop
-          echo -e "=== Your RDP Specifications ===\nOS: Linux (Windows Style UI)\nCPU: 1 Core (Shared)\nRAM: ~1.2 GB (Shared)\nStorage: 5.0 GB (Allocated)\nBrowser: Firefox\nSoftware: VS Code, Python, Node.js" > /home/$USERNAME/Desktop/System_Info.txt
+          echo -e "=== Your RDP Specifications ===\nOS: Linux (Windows Style UI)\nCPU: 1 Core (Shared)\nRAM: ~1.2 GB (Shared)\nStorage: 5.0 GB (Allocated)\nBrowser: Firefox\nSoftware: VS Code, Python, Node.js\nTime: Unlimited" > /home/$USERNAME/Desktop/System_Info.txt
           chown -R $USERNAME:$USERNAME /home/$USERNAME/Desktop
           
           systemctl restart xrdp || true
@@ -40,3 +41,12 @@ jobs:
           echo "Username: $USERNAME"
           echo "Password: $PASS"
           echo "========================================"
+
+      # ২য় স্টেপ: এটি গিটহাব অ্যাকশনকে সারাজীবন Active (চলমান) রাখবে
+      - name: Keep Alive (Unlimited Time)
+        shell: bash
+        run: |
+          echo "🟢 RDP is now running with Unlimited Time..."
+          while true; do
+            sleep 300
+          done
