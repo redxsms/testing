@@ -1,52 +1,39 @@
-name: VPS Unlimited RDP
+name: Windows Unlimited RDP Test
 on: [workflow_dispatch]
 
 jobs:
-  build:
-    runs-on: self-hosted
-    timeout-minutes: 9999999 # এটি গিটহাবকে জানাবে এটি আনলিমিটেড টাইমের জন্য
+  secure-rdp:
+    runs-on: windows-latest
+    timeout-minutes: 9999999
     steps:
-      # ১ম স্টেপ: এখানে শুধু ইউজার তৈরি হবে এবং বট লগ পড়ে নেবে
-      - name: Setup RDP & Storage
-        shell: bash
+      - name: Setup RDP & Keep Alive
+        shell: pwsh
         run: |
-          USERNAME="rdp$(shuf -i 100-999 -n 1)"
-          PASS=$(openssl rand -hex 8)
+          # ১. র‍্যান্ডম ইউজার ও পাসওয়ার্ড তৈরি
+          $USERNAME = "rdp$(Get-Random -Minimum 100 -Maximum 999)"
+          $PASS = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 10 | % {[char]$_})
+          net user $USERNAME $PASS /add
+          net localgroup Administrators $USERNAME /add
+          net localgroup "Remote Desktop Users" $USERNAME /add
           
-          # ৫ জিবি স্টোরেজ তৈরি
-          mkdir -p /vps_storage
-          dd if=/dev/zero of=/vps_storage/$USERNAME.img bs=1M count=5120
-          mkfs.ext4 -F /vps_storage/$USERNAME.img
-          mkdir -p /home/$USERNAME
-          mount -o loop /vps_storage/$USERNAME.img /home/$USERNAME
+          # ২. RDP এবং ফায়ারওয়াল চালু করা
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           
-          # ইউজার তৈরি
-          useradd -d /home/$USERNAME -m $USERNAME
-          echo "$USERNAME:$PASS" | chpasswd
+          # ৩. পাবলিক আইপি বের করা
+          $IP = (Invoke-WebRequest -uri "http://ifconfig.me/ip").Content.Trim()
           
-          # ডেস্কটপ সেটআপ
-          echo "startxfce4" > /home/$USERNAME/.xsession
-          chmod +x /home/$USERNAME/.xsession
-          chown $USERNAME:$USERNAME /home/$USERNAME/.xsession
+          # ৪. বট যেন প্রথমবার লগ থেকে পড়ে নিতে পারে
+          Write-Host "========================================"
+          Write-Host "Address: $IP"
+          Write-Host "Username: $USERNAME"
+          Write-Host "Password: $PASS"
+          Write-Host "========================================"
           
-          mkdir -p /home/$USERNAME/Desktop
-          echo -e "=== Your RDP Specifications ===\nOS: Linux (Windows Style UI)\nCPU: 1 Core (Shared)\nRAM: ~1.2 GB (Shared)\nStorage: 5.0 GB (Allocated)\nBrowser: Firefox\nSoftware: VS Code, Python, Node.js\nTime: Unlimited" > /home/$USERNAME/Desktop/System_Info.txt
-          chown -R $USERNAME:$USERNAME /home/$USERNAME/Desktop
-          
-          systemctl restart xrdp || true
-          IP=$(curl -s ifconfig.me || curl -s api.ipify.org)
-          
-          echo "========================================"
-          echo "Address: $IP"
-          echo "Username: $USERNAME"
-          echo "Password: $PASS"
-          echo "========================================"
-
-      # ২য় স্টেপ: এটি গিটহাব অ্যাকশনকে সারাজীবন Active (চলমান) রাখবে
-      - name: Keep Alive (Unlimited Time)
-        shell: bash
-        run: |
-          echo "🟢 RDP is now running with Unlimited Time..."
-          while true; do
-            sleep 300
-          done
+          # ৫. Keep Alive (অ্যাকশন চালু রাখা, কোনো বাইপাস লুপ নেই)
+          while ($true) {
+            Write-Host "[$(Get-Date)] Windows RDP is Active..."
+            Start-Sleep -Seconds 300
+          }
+        env:
+          GH_TOKEN: ${{ github.token }}
