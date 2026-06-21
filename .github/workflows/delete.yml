@@ -14,5 +14,16 @@ jobs:
       - name: Delete User
         shell: bash
         run: |
-          userdel -r ${{ github.event.inputs.username }} || true
-          echo "User ${{ github.event.inputs.username }} deleted successfully."
+          USERNAME=${{ github.event.inputs.username }}
+          
+          # ১. ইউজারের সব চলমান প্রসেস এবং RDP সেশন বন্ধ করা (যাতে সাথে সাথে কিক হয়)
+          pkill -u $USERNAME || true
+          
+          # ২. ভার্চুয়াল ডিস্ক আনমাউন্ট করা
+          umount /home/$USERNAME || true
+          
+          # ৩. ইউজার ও তার ফাইল ডিলিট করা
+          userdel -r $USERNAME || true
+          rm -f /vps_storage/$USERNAME.img
+          
+          echo "User $USERNAME deleted successfully."
