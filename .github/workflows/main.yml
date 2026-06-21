@@ -6,54 +6,33 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
-      - name: Setup Windows Style RDP
+      - name: Setup RDP
         shell: bash
         run: |
-          # ১. নতুন ইউজার ও পাসওয়ার্ড
           USERNAME="rdp$(shuf -i 100-999 -n 1)"
-          id -u $USERNAME &>/dev/null || useradd -m $USERNAME
           PASS=$(openssl rand -hex 8)
+          
+          # ৫ জিবি স্টোরেজ তৈরি
+          mkdir -p /vps_storage
+          dd if=/dev/zero of=/vps_storage/$USERNAME.img bs=1M count=5120
+          mkfs.ext4 -F /vps_storage/$USERNAME.img
+          mkdir -p /home/$USERNAME
+          mount -o loop /vps_storage/$USERNAME.img /home/$USERNAME
+          
+          # ইউজার তৈরি
+          useradd -d /home/$USERNAME -m $USERNAME
           echo "$USERNAME:$PASS" | chpasswd
           
-          # ২. ডেস্কটপ এনভায়রনমেন্ট সেট করা
+          # ডেস্কটপ সেটআপ
           echo "startxfce4" > /home/$USERNAME/.xsession
           chmod +x /home/$USERNAME/.xsession
           chown $USERNAME:$USERNAME /home/$USERNAME/.xsession
           
-          # ৩. উইন্ডোজের মতো নিচে টাস্কবার ও স্টার্ট মেনু সেট করা
-          mkdir -p /home/$USERNAME/.config/xfce4/xfconf/xfce-perchannel-xml
-          cat <<EOF > /home/$USERNAME/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
-          <?xml version="1.0" encoding="UTF-8"?>
-          <channel name="xfce4-panel" version="1.0">
-            <property name="panels" type="uint" value="1">
-              <property name="panel-0" type="empty">
-                <property name="position" type="string" value="p=6;x=0;y=0"/>
-                <property name="length" type="uint" value="100"/>
-                <property name="position-locked" type="bool" value="true"/>
-                <property name="plugin-ids" type="uint" value="1;2;3;4;5;6"/>
-              </property>
-            </property>
-            <property name="plugins" type="empty">
-              <property name="plugin-1" type="string" value="whiskermenu"/>
-              <property name="plugin-2" type="string" value="separator"/>
-              <property name="plugin-3" type="string" value="tasklist"/>
-              <property name="plugin-4" type="string" value="separator"/>
-              <property name="plugin-5" type="string" value="pager"/>
-              <property name="plugin-6" type="string" value="clock"/>
-            </property>
-          </channel>
-          EOF
-          chown -R $USERNAME:$USERNAME /home/$USERNAME/.config
-          
-          # ৪. ডেস্কটপে সিস্টেম স্পেসিফিকেশন ফাইল দেওয়া
           mkdir -p /home/$USERNAME/Desktop
-          echo -e "=== Your RDP Specifications ===\nOS: Linux (Windows Style UI)\nCPU: 1 Core (Shared)\nRAM: ~1.2 GB (Shared)\nStorage: 15 GB\nSoftware: VS Code, Python, Node.js pre-installed.\n\nTo start coding, open 'Code' from the Start Menu." > /home/$USERNAME/Desktop/System_Info.txt
+          echo -e "=== Your RDP Specifications ===\nOS: Linux (Windows Style UI)\nCPU: 1 Core (Shared)\nRAM: ~1.2 GB (Shared)\nStorage: 5.0 GB (Allocated)\nBrowser: Firefox\nSoftware: VS Code, Python, Node.js" > /home/$USERNAME/Desktop/System_Info.txt
           chown -R $USERNAME:$USERNAME /home/$USERNAME/Desktop
           
-          # ৫. xrdp সার্ভিস রিস্টার্ট
           systemctl restart xrdp || true
-
-          # ৬. পাবলিক আইপি বের করা
           IP=$(curl -s ifconfig.me || curl -s api.ipify.org)
           
           echo "========================================"
